@@ -1,16 +1,12 @@
 import { Point2D, Stroke } from './types';
 import { STROKE, GESTURE } from './constants';
 
-// Jitter filter threshold - ignore movements smaller than this
-const JITTER_THRESHOLD = 0;  // No jitter filtering for instant response
-
 export class DrawingCanvas {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private currentStroke: Stroke | null = null;
   private completedStrokes: Stroke[] = [];
   private livePosition: Point2D | null = null;
-  private filteredPosition: Point2D | null = null;  // Position after jitter filter
   private recentPoints: Point2D[] = [];  // Buffer for smoothing - minimal for instant response
   private strokeStartTime: number = 0;  // Time when stroke started
 
@@ -41,7 +37,6 @@ export class DrawingCanvas {
       closed: false
     };
     this.livePosition = point;
-    this.filteredPosition = point;
     this.recentPoints = [point];
     this.strokeStartTime = performance.now();
   }
@@ -79,11 +74,6 @@ export class DrawingCanvas {
     }
   }
 
-  // No jitter filtering - use raw positions for zero latency
-  private applyJitterFilter(point: Point2D): Point2D {
-    return point;  // Return point as-is, no filtering
-  }
-
   // Minimal smoothing - just return most recent point for zero latency
   private getSmoothedPosition(): Point2D {
     if (this.recentPoints.length === 0) {
@@ -101,7 +91,6 @@ export class DrawingCanvas {
 
   clearLivePosition(): void {
     this.livePosition = null;
-    this.filteredPosition = null;
     this.recentPoints = [];
   }
 
