@@ -119,7 +119,7 @@ Found a bug? Have an idea? I'd love to hear from you!
 
 ## Credits
 
-Designed by [Sadrita Neogi](https://www.instagram.com/sadrita_neogi/)
+Designed by [Janus Tiu](https://www.instagram.com/sadrita_neogi/)
 
 ### Open Source Libraries
 
