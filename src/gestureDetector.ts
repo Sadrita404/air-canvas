@@ -62,9 +62,9 @@ export class GestureDetector {
       y: (currentPalm.y - lastPalm.y) / dt
     };
 
-    // Smooth velocity with minimal history for faster response
+    // Minimal velocity smoothing for faster response - use only current frame
     this.velocityHistory.push(velocity);
-    if (this.velocityHistory.length > 2) {
+    if (this.velocityHistory.length > 1) {  // Reduced from 2 to 1
       this.velocityHistory.shift();
     }
 
@@ -93,7 +93,12 @@ export class GestureDetector {
   private detectGestureType(landmarks: HandLandmarks, velocity: Point2D): GestureType {
     const lm = landmarks.landmarks;
 
-    // Check for swipe first (fast horizontal movement)
+    // Check for draw mode FIRST (index finger extended) - prioritized for instant responsiveness
+    if (this.isPointingIndex(landmarks)) {
+      return 'draw';
+    }
+
+    // Check for swipe (fast horizontal movement)
     const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
     if (speed > GESTURE.SWIPE_VELOCITY && Math.abs(velocity.x) > Math.abs(velocity.y) * 1.5) {
       return 'swipe';
@@ -126,11 +131,6 @@ export class GestureDetector {
       }
     } else {
       this.palmHistory = [];
-    }
-
-    // Check for draw mode (index finger extended) - check this early for responsiveness
-    if (this.isPointingIndex(landmarks)) {
-      return 'draw';
     }
 
     return 'none';

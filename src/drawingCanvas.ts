@@ -2,7 +2,7 @@ import { Point2D, Stroke } from './types';
 import { STROKE, GESTURE } from './constants';
 
 // Jitter filter threshold - ignore movements smaller than this
-const JITTER_THRESHOLD = 3;
+const JITTER_THRESHOLD = 0.5;  // Reduced for faster responsiveness
 
 export class DrawingCanvas {
   private canvas: HTMLCanvasElement;
@@ -11,7 +11,7 @@ export class DrawingCanvas {
   private completedStrokes: Stroke[] = [];
   private livePosition: Point2D | null = null;
   private filteredPosition: Point2D | null = null;  // Position after jitter filter
-  private recentPoints: Point2D[] = [];  // Buffer for smoothing
+  private recentPoints: Point2D[] = [];  // Buffer for smoothing - reduced size for lower latency
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -50,21 +50,21 @@ export class DrawingCanvas {
     // Apply jitter filter - ignore tiny movements
     const filtered = this.applyJitterFilter(point);
 
-    // Add filtered point to buffer
+    // Add filtered point to buffer - very small buffer for instant responsiveness
     this.recentPoints.push(filtered);
-    if (this.recentPoints.length > 10) {
+    if (this.recentPoints.length > 3) {  // Reduced from 10 to 3
       this.recentPoints.shift();
     }
 
-    // Use strong smoothing
+    // Use light smoothing
     const smoothed = this.getSmoothedPosition();
     this.livePosition = smoothed;
 
     const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
     const dist = this.distance(smoothed, lastPoint);
 
-    // Only add points that are far enough apart
-    if (dist >= STROKE.MIN_POINT_DISTANCE) {
+    // Only add points that are far enough apart - reduced threshold for more responsive drawing
+    if (dist >= 2) {  // Reduced from STROKE.MIN_POINT_DISTANCE (8) to 2 for immediate responsiveness
       this.currentStroke.points.push(smoothed);
     }
   }
@@ -88,21 +88,24 @@ export class DrawingCanvas {
     return point;
   }
 
-  // Strong smoothing using simple moving average
+  // Light smoothing using simple moving average - minimal smoothing for faster response
   private getSmoothedPosition(): Point2D {
     if (this.recentPoints.length === 0) {
       return { x: 0, y: 0 };
     }
 
-    // Simple average of all points in buffer
+    // Average with bias toward recent points for responsiveness
     let sumX = 0, sumY = 0;
-    for (const p of this.recentPoints) {
-      sumX += p.x;
-      sumY += p.y;
+    let weightSum = 0;
+    for (let i = 0; i < this.recentPoints.length; i++) {
+      const weight = i + 1;  // More recent points have higher weight
+      sumX += this.recentPoints[i].x * weight;
+      sumY += this.recentPoints[i].y * weight;
+      weightSum += weight;
     }
     return {
-      x: sumX / this.recentPoints.length,
-      y: sumY / this.recentPoints.length
+      x: sumX / weightSum,
+      y: sumY / weightSum
     };
   }
 
@@ -110,7 +113,7 @@ export class DrawingCanvas {
   updateLivePosition(point: Point2D): void {
     const filtered = this.applyJitterFilter(point);
     this.recentPoints.push(filtered);
-    if (this.recentPoints.length > 10) {
+    if (this.recentPoints.length > 3) {  // Reduced from 10 to 3
       this.recentPoints.shift();
     }
     this.livePosition = this.getSmoothedPosition();
